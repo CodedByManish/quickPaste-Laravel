@@ -3,14 +3,10 @@
 use App\Http\Controllers\PasteController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [PasteController::class, 'index'])->name('home');
 
+Route::post('/paste', [PasteController::class, 'store'])->name('paste.store');
 
-Route::prefix('v1')->group(function () {
-    Route::post('/pastes', [PasteController::class, 'store']);       // Create
-    Route::get('/pastes/{slug}', [PasteController::class, 'show']);   // Fetch
-    Route::put('/pastes/{slug}', [PasteController::class, 'update']); // Update
-    Route::delete('/pastes/{slug}', [PasteController::class, 'destroy']); // Delete
-});
+Route::get('/{unique_id}', [PasteController::class, 'show'])->name('paste.show');
+
+Route::get('/download/{unique_id}', [PasteController::class, 'download'])->name('paste.download');
