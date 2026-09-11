@@ -1,14 +1,4 @@
-window.appState = undefined;
 document.addEventListener('DOMContentLoaded', function () {
-    const {
-        editor,
-        selectedFile,
-        urlInput,
-        expirySelect,
-        activeTab,
-        resetForm
-    } = window.appState;
-
     const submitBtn = document.getElementById('submit-btn');
     const resultContainer = document.getElementById('result-container');
     const resultUrl = document.getElementById('result-url');
@@ -19,23 +9,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-    submitBtn.addEventListener('click', handleSubmit);
+    if (submitBtn) submitBtn.addEventListener('click', handleSubmit);
 
-    copyBtn.addEventListener('click', function () {
-        resultUrl.select();
-        document.execCommand('copy');
-        if (successSound) successSound.play().catch(() => {});
-        const originalHTML = this.innerHTML;
-        this.innerHTML = '<i class="fas fa-check"></i>';
-        setTimeout(() => (this.innerHTML = originalHTML), 2000);
-    });
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+            resultUrl.select();
+            document.execCommand('copy');
+            if (successSound) successSound.play().catch(() => {});
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => (this.innerHTML = originalHTML), 2000);
+        });
+    }
 
-    newPasteBtn.addEventListener('click', () => {
-        resetForm();
-        resultContainer.classList.add('hidden');
-    });
+    if (newPasteBtn) {
+        newPasteBtn.addEventListener('click', () => {
+            if (window.appState && window.appState.resetForm) {
+                window.appState.resetForm();
+            }
+            resultContainer.classList.add('hidden');
+        });
+    }
 
     async function handleSubmit() {
+        if (!window.appState) {
+            alert('Application state not initialized.');
+            return;
+        }
+
+        const { editor, selectedFile, urlInput, expirySelect, activeTab } = window.appState;
         loadingOverlay.classList.remove('hidden');
 
         try {
@@ -45,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
             switch (tab) {
                 case 'text':
                     const content = editor.innerHTML.trim();
-                    if (!content) throw new Error('Please enter some text to paste.');
+                    if (!content || content === '<br>') throw new Error('Please enter some text to paste.');
                     response = await postData('/paste', { type: 'text', content, expiry: expirySelect.value });
                     break;
 
@@ -69,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (response?.success && response.url) {
                 showResult(response.url);
             } else {
-                throw new Error(response?.error || 'Unexpected error occurred.');
+                throw new Error(response?.error || response?.message || 'Unexpected error occurred.');
             }
 
         } catch (error) {
